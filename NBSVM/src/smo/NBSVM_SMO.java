@@ -1,6 +1,5 @@
 package smo;
 
-
 //自定义类，相当于结构体
 class Node{
 	int idx;
@@ -46,12 +45,18 @@ public class NBSVM_SMO {
 	private double[][] subKernel;
 	private int[] subKernelIndices;
 	
+	//rfb的gamma
+	private double sigma;
+	//针对样本结果分类不为-1和1，记录原始类别
+	private Integer positive=null;
+	private Integer negative=null;
+	
 	//KKTviolationsLevel 允许违反kkt条件α数的百分比 例子 0.05表示百分之五
 	//nbsvm，目标是正类
-	public NBSVM_SMO(double[][]data,Integer[] label,Double C,double KKTviolationsLevel, String kernel) {
+	public NBSVM_SMO(double[][]data,Integer[] label,double KKTviolationsLevel,Double C, String kernel,double sigma) {
 		this.isNBSVM=true;
 		this.data = data;
-		this.label = label;
+		this.label = label.clone();
 		this.C = C;
 		this.acceptedKKTviolations = (int)KKTviolationsLevel*label.length;
 		this.kernel = kernel;
@@ -59,15 +64,16 @@ public class NBSVM_SMO {
 		this.Gi = new double[data.length];
 		this.upMask = new int[data.length];
 		this.downMask = new int[data.length];
+		this.sigma = sigma;
 		createKernelCache();
 		SetBoxAndP();
 		start();
 	}
-	//unbsvm, 目标是负类，w1和w2表示负类和正类的惩罚参数
-	public NBSVM_SMO(double[][]data,Integer[] label,Double C,double KKTviolationsLevel,double w1,double w2, String kernel) {
+	//unbsvm, 目标是负类，w1和w2表示少数类和多数类的惩罚参数
+	public NBSVM_SMO(double[][]data,Integer[] label,double KKTviolationsLevel,Double C,double w1,double w2, String kernel,double gamma) {
 		this.isNBSVM=false;
 		this.data = data;
-		this.label = label;
+		this.label = label.clone();
 		this.C = C;
 		this.w1 = w1;
 		this.w2 = w2;
@@ -77,10 +83,26 @@ public class NBSVM_SMO {
 		this.Gi = new double[data.length];
 		this.upMask = new int[data.length];
 		this.downMask = new int[data.length];
+		this.sigma = gamma;
+		turn_label();
 		createKernelCache();
 		SetBoxAndP();
 		start();
 	}
+	
+	private void turn_label() {
+		Integer p;
+		for(int i=0;i<label.length;i++) {
+			if(negative==null)negative=label[i];
+			if(label[i]!=negative) {positive=label[i];break;}
+		}
+		if(negative>positive) {p=positive;positive=negative;negative=p;}
+		for(int i=0;i<label.length;i++) {
+			if(label[i]==negative)label[i]=-1;
+			else label[i]=1;
+		}
+	}
+	
 	//设置boxconstraint和P以及Gi
 	private void SetBoxAndP() {
 		double[] P = new double[2];
@@ -89,6 +111,12 @@ public class NBSVM_SMO {
 			if(label[i]==1) {p++;upMask[i]=1;}
 			else downMask[i]=1;
 		}
+		if(p>data.length/2) {
+			double w;
+			w=w1;
+			w1=w2;
+			w2=w;
+		}
 		boxconstraint[0] = C*label.length/p;
 		boxconstraint[1] = C*label.length/(label.length-p);
 		if(isNBSVM) {
@@ -96,8 +124,8 @@ public class NBSVM_SMO {
 			P[1]=1-P[0];
 		}else {
 			double p0,p1;
-			p0=w2*p/label.length;
-			p1=w1*(label.length-p)/label.length;
+			p0=w1*p/label.length;
+			p1=w2*(label.length-p)/label.length;
 			P[0]=p0/(p0+p1);
 			P[1]=p1/(p0+p1);
 		}
@@ -105,6 +133,7 @@ public class NBSVM_SMO {
 			if(label[i]==1) Gi[i]=P[0];
 			else Gi[i]=P[1];
 		}
+		//System.out.println("P:"+Arrays.toString(P));
 	}
 	
 
@@ -428,8 +457,8 @@ public class NBSVM_SMO {
 		for(int i=0;i<data.length;i++) {
 			result +=alphas[i]*label[i]*kernel(unkonwn,data[i],kernel);
 		}
-		if(result>0)return 1;
-		else return -1;
+		if(result>0)return positive;
+		else return negative;
 	}
 	
 	
@@ -453,7 +482,8 @@ public class NBSVM_SMO {
 		else if(k.equals("rbf")) {
 			double[] x = new double[x1.length]; 
 			for(int i=0;i<x.length;i++)x[i] = x1[i]-x2[i];
-			K=Math.exp(-calculate(x)/x1.length);
+			K=Math.exp(-calculate(x)/(2*sigma*sigma));
+			//2*sigma*sigma,x1.length
 		}
 		return K;
 	}

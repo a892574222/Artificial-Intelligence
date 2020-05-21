@@ -6,7 +6,6 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import smo.NBSVM_SMO;;
 
 public class NBSVM {
 	//获取样本属性
@@ -51,46 +50,4 @@ public class NBSVM {
 		return array;
 	}
 	
-	public static void main(String[] args) {
-		
-		long startTime = System.currentTimeMillis();
-		
-		String data_x = "F:\\javatest\\SVM\\src\\data_x.txt";
-		String data_y = "F:\\javatest\\SVM\\src\\data_y.txt";
-		double[][] x = getdata_x(data_x);
-		Integer[] y = getdata_y(data_y);
-		//交叉验证组数
-		int k=10;
-		//记录预测正确的样本
-		double p=0;
-		double q=0;
-		double[][] x0 = new double [(x.length)/k][];
-		Integer[] y0 = new Integer [(x.length)/k];
-		double[][] x1 = new double [x0.length*(k-1)][];
-		Integer[] y1 = new Integer [x0.length*(k-1)];
-		for(int j=0;j<k;j++) {
-		p=0;
-		q=0;
-		for(int i=0;i<x0.length+x1.length;i++) {
-			if(i<x0.length*(j+1)&&i>=x0.length*j) {x0[i-x0.length*j] = x[i];y0[i-x0.length*j] = y[i];}
-			else{
-				if(i<x0.length*j) {x1[i] = x[i];y1[i] = y[i];}
-				if(i>=x0.length*(j+1)) {x1[i-x0.length]  = x[i];y1[i-x0.length]  = y[i];}
-					
-			}
-		}
-		//System.out.println(Arrays.deepToString(x1));
-		NBSVM_SMO mysmo = new NBSVM_SMO(x1, y1, 1.0,0.05,2.0,0.1, "rbf");
-		for(int i=0;i<x0.length;i++) if(y0[i]==-1)q++;
-		for(int i=0;i<x0.length;i++) if(mysmo.predict(x0[i])==-1)p++;
-		System.out.print("交叉验证第"+(j+1)+"组结果");
-		System.out.println((p/q)*100);
-		}
-		
-		
-		long endTime = System.currentTimeMillis();
-		System.out.println("程序运行时间：" + (endTime - startTime) + "ms");    //输出程序运行时间
-
-		
-	}
 }
