@@ -17,6 +17,6 @@
 
 <tr>
 <td align="center">NBSVM</td>
-<td>适用于样本不均衡，需要使超平面偏移的SVM，NBSVM适用于目标是正类（标签为1）uNBSVM适用于目标是负类（标签为-1）</td>
+<td>NBSVM适用于样本不均衡，需要使超平面偏移的SVM</td>
 </tr>
 </table>
