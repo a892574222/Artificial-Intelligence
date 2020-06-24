@@ -1,19 +1,9 @@
 package smo;
 
-import java.util.Arrays;
-
 //自定义类，相当于结构体
-class Node{
-	int idx;
-	double f;
-	public Node(int idx,double f) {
-		this.idx=idx;
-		this.f=f;
-	}
-} 
 
 
-public class NBSVM_SMO {
+public class Another_SMO {
 	//SMO的参
 	private double[][] data;
 	private Integer[] label;
@@ -47,18 +37,15 @@ public class NBSVM_SMO {
 	private double[][] subKernel;
 	private int[] subKernelIndices;
 	
-	//rfb的gamma
-	private double sigma;
+
 	private int d;
 	//针对样本结果分类不为-1和1，记录原始类别
 	private Integer positive=null;
 	private Integer negative=null;
-	private double positive_number=0;
-	double[] parameters;
 	
 	//KKTviolationsLevel 允许违反kkt条件α数的百分比 例子 0.05表示百分之五
 	//unbsvm, 目标是负类，w1和w2表示少数类和多数类的平衡参数,C1和C2表示少数类和多数类的惩罚系数
-	public NBSVM_SMO(double[][]data,Integer[] label,double KKTviolationsLevel,double C1,double C2,double w1,double w2, String kernel,double gamma,int d) {
+	public Another_SMO(double[][]data,Integer[] label,double KKTviolationsLevel,double C1,double C2,double w1,double w2, String kernel) {
 		this.data = data;
 		this.label = label.clone();
 		this.C1 = C1;
@@ -71,13 +58,10 @@ public class NBSVM_SMO {
 		this.Gi = new double[data.length];
 		this.upMask = new int[data.length];
 		this.downMask = new int[data.length];
-		this.sigma = gamma;
-		this.d=d;
 		turn_label();
 		createKernelCache();
 		SetBoxAndP();
 		start();
-		this.parameters= calculate_parameters();
 	}
 	
 	private void turn_label() {
@@ -95,11 +79,12 @@ public class NBSVM_SMO {
 	
 	//设置boxconstraint和P以及Gi
 	private void SetBoxAndP() {
+		double p=0;
 		for(int i=0;i<label.length;i++) {
-			if(label[i]==1) {positive_number++;upMask[i]=1;}
+			if(label[i]==1) {p++;upMask[i]=1;}
 			else downMask[i]=1;
 		}
-		if(positive_number>data.length/2) {
+		if(p>data.length/2) {
 			double w;
 			w=w1;
 			w1=w2;
@@ -463,7 +448,7 @@ public class NBSVM_SMO {
 		else if(k.equals("rbf")) {
 			double[] x = new double[x1.length]; 
 			for(int i=0;i<x.length;i++)x[i] = x1[i]-x2[i];
-			K=Math.exp(-calculate(x)/(2*sigma*sigma));
+			K=Math.exp(-calculate(x)/(x1.length));
 			//2*sigma*sigma,x1.length
 		}
 		else if(k.equals("poly")) {
@@ -496,138 +481,21 @@ public class NBSVM_SMO {
 		return sum;
 	}
 	
-	//计算真实的结果
-	public double getDistance(double[] unkonwn,Integer un_label){
+	//计算平均函数间隔
+	public double getDistance() {
 		double sum=0;
-		double result=b;
-		Integer changed_label;
-		if(un_label==negative)changed_label=-1;
-		else if(un_label==positive)changed_label=1;
-		else return -2;
+		double result;
 		for(int i=0;i<data.length;i++) {
-			result +=alphas[i]*label[i]*kernel(unkonwn,data[i],kernel);
+			result=b;
+			for(int j=0;j<data.length;j++) {
+				result +=alphas[j]*label[j]*kernel(data[i],data[j],kernel);
+			}
+			result=label[i]*result;
+			if(label[i]==1)if(result<=w1)sum+=w1-result;
+			if(label[i]==-1)if(result<=w2)sum+=w2-result;
 		}
-			result=un_label*result;
-			if(changed_label==1)if(result<=w1)sum=(w1-result);
-			if(changed_label==-1)if(result<=w2)sum=(w2-result);
-		
 		return sum;
 	}
 	
-	//获取该二分类所对应的标签
-	public Integer[] get_label() {
-		Integer[] result=new Integer[2];
-		result[0] = negative;
-		result[1] = positive;
-		return result;
-	}
 	
-	//计算sigmoid函数的A,B参数
-	private double[] calculate_parameters() {
-		double maxiter=100;
-		double minstep=1e-10;
-		double sigma=1e-12;
-		double h11,h22,h21,g1,g2,p,q,d1,d2,det,dA,dB,gd,stepsize,newA,newB,newf;
-		double result;
-		double deci[] = new double[data.length];
-		double negative_num=data.length-positive_number;
-		double hiTarget=(positive_number+1.0)/(positive_number+2.0);
-		double loTarget=1/(negative_num+2.0);
-		double t[]=new double[data.length];
-		double A=0,fval=0,fApB;
-		double B=Math.log((negative_num+1.0)/(positive_number+1.0));
-		double[]finally_A_B = new double[2];
-		for(int i=0;i<data.length;i++) {
-			result=b;
-			
-			for(int j=0;j<data.length;j++) {
-				result +=alphas[j]*label[j]*kernel(data[j],data[i],kernel);
-			}
-			deci[i] = result;
-			if(label[i]==1)t[i]=hiTarget;
-			else t[i]=loTarget;
-			fApB=deci[i]*A+B;
-			if(fApB>=0) fval+=t[i]*fApB+Math.log(1+Math.exp(-fApB));
-			else fval += (t[i]-1)*fApB+Math.log(1+Math.exp(fApB));
-		}
-		
-		
-//		newf=0.0;
-//		for(int i=0;i<data.length;i++) {
-//			fApB=deci[i]*A+B;
-//			if(fApB>=0) newf+=t[i]*fApB+Math.log(1+Math.exp(-fApB));
-//			else newf += (t[i]-1)*fApB+Math.log(1+Math.exp(fApB));
-//		}
-//		System.out.println("newf:"+newf);
-		
-		for(int it=0;it<maxiter;it++) {
-			h11=sigma;
-			h22=sigma;
-			h21=0.0;
-			g1=0.0;
-			g2=0.0;
-			for(int i=0;i<data.length;i++) {
-				fApB=deci[i]*A+B;
-				if (fApB >= 0) {p=Math.exp(-fApB)/(1.0+Math.exp(-fApB));q=1.0/(1.0+Math.exp(-fApB));}
-				else {p=1.0/(1.0+Math.exp(fApB));q=Math.exp(fApB)/(1.0+Math.exp(fApB));}
-			d2=p*q;
-			h11 += deci[i]*deci[i]*d2;
-			h22 += d2;
-			h21 += deci[i]*d2;
-			d1=t[i]-p;
-			g1 += deci[i]*d1;
-			g2 += d1;
-			}
-			if (Math.abs(g1)<1e-5 && Math.abs(g2)<1e-5)break;
-			det=h11*h22-h21*h21;
-			dA=-(h22*g1-h21*g2)/det;
-			dB=-(-h21*g1+h11*g2)/det;
-			gd=g1*dA+g2*dB;
-			stepsize=1;
-			while (stepsize >= minstep){
-				newA=A+stepsize*dA;
-				newB=B+stepsize*dB;
-				newf=0.0;
-				for(int i=0;i<data.length;i++) {
-					fApB=deci[i]*newA+newB;
-					if(fApB>=0) newf+=t[i]*fApB+Math.log(1+Math.exp(-fApB));
-					else newf += (t[i]-1)*fApB+Math.log(1+Math.exp(fApB));
-				}
-				if (newf<fval+0.0001*stepsize*gd){
-					A=newA;
-					B=newB;
-					fval=newf;
-					break;
-				}
-				else stepsize /= 2.0;
-			}
-			if (stepsize < minstep) {
-				//System.out.println("Line search fails");
-				break;
-				}
-		}
-		//System.out.println("Reaching maximum iterations");
-		finally_A_B[0]=A;
-		finally_A_B[1]=B;
-//		System.out.println(A);
-//		System.out.println(B);
-//		System.out.println("++++++++++");
-		return finally_A_B;
-	}
-	
-	//计算属于正类的概率
-	public double get_probability(double[] unkonwn) {
-		double fApB=b;
-		double p;
-		double f;
-		for(int i=0;i<data.length;i++) {
-			fApB +=alphas[i]*label[i]*kernel(unkonwn,data[i],kernel);
-		}
-		if(fApB>=0) {f=Math.exp(-parameters[0]*fApB-parameters[1]);p=f/(1+f);}
-		else {f=Math.exp(parameters[0]*fApB+parameters[1]);p=1/(1+f);}
-//		System.out.println(fApB);
-//		System.out.println(p);
-//		System.out.println("-----------");
-		return p;
-	}
 }

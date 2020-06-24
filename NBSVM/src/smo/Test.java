@@ -1,21 +1,18 @@
 package smo;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.Vector;
 
 public class Test {
-	
-	
 	public static void main(String[] args) {
-		String data_X = "F:\\javatest\\NBSVM\\src\\gla_x.txt";
-		String data_Y = "F:\\javatest\\NBSVM\\src\\gla_y.txt";
+		String data_X = "src\\zoo_x.txt";
+		String data_Y = "src\\zoo_y.txt";
 		double[][] data_x = NBSVM.getdata_x(data_X);
 		Integer[] data_y = NBSVM.getdata_y(data_Y);
 		Integer[] label_kinds;
+//		System.out.println(Arrays.deepToString(data_x));
+//		System.out.println(Arrays.toString(data_y));
 		Vector<Integer> y= new Vector<Integer>();
 		Vector<Vector<Vector<Double>>> xxx = new Vector<Vector<Vector<Double>>>();
 		Vector<Vector<Vector<Vector<Double>>>> xxx_divied = new Vector<Vector<Vector<Vector<Double>>>>();
@@ -30,27 +27,43 @@ public class Test {
 		double q;
 		int rest;
 		Random randoms = new Random();
-		//归一化
-		double sum;
-		double mean;
-		double std;
-		for(int i=0;i<data_x.length;i++) {
-			sum=0;
-			mean=0;
-			std=0;
-			for(int j=0;j<data_x[i].length;j++) 
-				sum+=data_x[i][j];
-			 mean=sum/data_x[i].length;
-			 sum=0;
-			for(int j=0;j<data_x[i].length;j++) 
-					sum+=(data_x[i][j]-mean)*(data_x[i][j]-mean);
-			std=sum/data_x[i].length;
-			for(int j=0;j<data_x[i].length;j++) {
-				if(std>0)data_x[i][j] = (data_x[i][j]-mean)/(std);
-				else data_x[i][j]=0.0;
-			}
+		//方差-平均值归一化
+//		double sum;
+//		double mean;
+//		double std;
+//		for(int i=0;i<data_x.length;i++) {
+//			sum=0;
+//			mean=0;
+//			std=0;
+//			for(int j=0;j<data_x[i].length;j++) 
+//				sum+=data_x[i][j];
+//			 mean=sum/data_x[i].length;
+//			 sum=0;
+//			for(int j=0;j<data_x[i].length;j++) 
+//					sum+=(data_x[i][j]-mean)*(data_x[i][j]-mean);
+//			std=sum/data_x[i].length;
+//			for(int j=0;j<data_x[i].length;j++) {
+//				if(std>0)data_x[i][j] = (data_x[i][j]-mean)/(std);
+//				else data_x[i][j]=0.0;
+//			}
+//		}
+		//[0,1]归一化
+		double max;
+		double min;
+		
+		for(int i=0;i<data_x[0].length;i++) {
+		max=data_x[0][i];
+		min=data_x[0][i];
+		for(int j=1;j<data_x.length;j++){
+			if(data_x[j][i]>max)max=data_x[j][i];
+			if(data_x[j][i]<min)min=data_x[j][i];
 		}
-		//System.out.println(Arrays.deepToString(data_x));
+		for(int j=0;j<data_x.length;j++){
+			if(max-min==0)data_x[j][i]=0;
+			else data_x[j][i]=(data_x[j][i]-min)/(max-min);
+		}
+	}
+		System.out.println(Arrays.deepToString(data_x));
 		//交叉验证组数
 		int k=10;
 		double[] result;
@@ -78,7 +91,7 @@ public class Test {
 				xxx.add(xx);
 				xx = new Vector<Vector<Double>>();
 		}
-		
+		//生成k个m类的vector向量空间
 		for(int i=0;i<k;i++) {
 			xxx_divied.add(new Vector<Vector<Vector<Double>>>());
 			y_divied.add(new Vector<Integer>());
@@ -156,12 +169,14 @@ public class Test {
 				}
 				y1[m] = y_divied.get(j).get(m);
 			}
-			//System.out.print(Arrays.toString(a));
-			
-			
-			
+
 			//现在基因片段由C,正负类的p,和sigma组成
-			OVO_NBSVM mysmo = new OVO_NBSVM(x0, y0,0.05, "rbf");
+			OVO_NBSVM mysmo = new OVO_NBSVM(x0, y0,0.0,x1,y1);
+			
+			
+//			Grid_Search mysmo = new Grid_Search(x0,y0,0.0,x1,y1);
+			
+			
 			result = new double[x1.length];
 			for(int n=0;n<x1.length;n++) {
 				q=0;

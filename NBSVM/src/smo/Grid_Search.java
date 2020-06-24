@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.Vector;
 
-public class OVO_NBSVM {
+public class Grid_Search {
 	private Integer[] label_kinds;
 	private double tol;
 	private String kernel;
@@ -14,17 +14,14 @@ public class OVO_NBSVM {
 	//训练样本
 	private double[][][] train_data_x;
 	private Integer[][] train_data_y;
-	//验证样本（按类别分）
+	//验证样本
 	private double[][][] validation_data_x;
 	private Integer[] validation_data_y;
-	//验证样本（combine）
-	private double[][][] validation_combine_x;
-	private Integer[][] validation_combine_y;
 	
 	private double[][][] x1;
 	private Integer[] y1;
 	private NBSVM_SMO[] ovo;
-	public OVO_NBSVM(double[][]data_x,Integer[] data_y,double tol,double[][][]x1,Integer[]y1) {
+	public Grid_Search(double[][]data_x,Integer[] data_y,double tol,double[][][]x1,Integer[]y1) {
 		this.tol = tol;
 		label_kinds=set_num(data_y);
 		data_divied(data_x,data_y);
@@ -47,7 +44,7 @@ public class OVO_NBSVM {
 		return result;
 	}
 	
-	//训练样本==验证样本
+	//将样本每一类随机7，3分为未combine的训练样本和验证样本
 	private void data_divied(double[][]data_x,Integer[] data_y) {
 		Vector<Integer> y= new Vector<Integer>();
 		Vector<Vector<Vector<Double>>> xxx = new Vector<Vector<Vector<Double>>>();
@@ -110,16 +107,15 @@ public class OVO_NBSVM {
 			}
 		}
 		data_xx.clear();
+		
 	}
-
-	//获取所有的训练样本
+	
+	
+	//获取所有的组合
 	private void set_combinations() {
 		train_data_x = new double[data_xx.length*(data_xx.length-1)/2][][];
 		train_data_y = new Integer[data_yy.length*(data_yy.length-1)/2][];
-		validation_combine_x = new double[validation_data_x.length*(validation_data_x.length-1)/2][][];
-		validation_combine_y = new Integer[validation_data_y.length*(validation_data_y.length-1)/2][];
 		int index=0;
-		//训练样本
 		for(int i=0;i<data_xx.length-1;i++) {
 			for(int j=i+1;j<data_xx.length;j++) {
 				train_data_x[index] = new double[data_xx[i].length+data_xx[j].length][];
@@ -135,49 +131,100 @@ public class OVO_NBSVM {
 				index++;
 			}
 		}
-
 	}
 	
 	
-	private double[][] get_parameters() {
-		double[] l= {0.0,0.0,0.0,0.0,0.0,0.0,1.0};
-		double[] u= {Math.pow(10, 3),Math.pow(10, 3),1.0,1.0,2.0,100,15};
-		//基因片段是所有SVM的四个参
-		double[][] result;
-		DE de = new DE(train_data_x,train_data_y,validation_data_x,validation_data_y,tol,l,u,x1,y1);
-		result = de.get_result();
-		return result;
+	private void get_parameters() {
+		Another_SMO[] ovo= new Another_SMO[train_data_x.length];
+		double[][] res = new double[2][4];
+		double[] result = new double[x1.length];
+		int index=0;
+		double distance[][] = new double[2][2];
+		for(int i0=-3;i0<8;i0++) {
+			for(int i1=-3;i1<8;i1++) {
+				for(double i2=0;i2<=1;i2+=0.1) {
+					for(double i3=0;i3<=1;i3+=0.1) {
+						index++;
+						for(int i=0;i<train_data_x.length;i++) {
+							ovo[i] = new Another_SMO(train_data_x[i],train_data_y[i],tol, Math.pow(10, i0),Math.pow(10, i1),i2,i3, "rbf");
+							}
+//						System.out.println(Math.pow(10, i0));
+//						System.out.println(Math.pow(10, i1));
+//						System.out.println(i2);
+//						System.out.println(i3);
+						for(int n=0;n<x1.length;n++) {
+							double q = 0;
+							for(int m=0;m<x1[n].length;m++)if(y1[n]==this.predict(ovo,x1[n][m]))q++;
+							result[n] = q/x1[n].length;
+//							System.out.println("预测的类别:"+y1[n]);
+//							System.out.println("预测的类别的向量总数:"+x1[n].length);
+//							System.out.println("预测准确率"+result[n]);
+						}
+						double finally_result0 = 0;
+						for(int n=0;n<result.length;n++)finally_result0+=result[n];
+						finally_result0=finally_result0/result.length;
+						//System.out.println("第"+(index)+"次test测试结果"+finally_result);
+						
+						
+						
+						result = new double[validation_data_x.length];
+						for(int n=0;n<validation_data_x.length;n++) {
+							double q = 0;
+							for(int m=0;m<validation_data_x[n].length;m++)if(validation_data_y[n]==this.predict(ovo,validation_data_x[n][m]))q++;
+							result[n] = q/validation_data_x[n].length;
+//							System.out.println("预测的类别:"+validation_data_y[n]);
+//							System.out.println("预测的类别的向量总数:"+validation_data_x[n].length);
+//							System.out.println("预测准确率"+result[n]);
+						}
+						double finally_result1 = 0;
+						for(int n=0;n<result.length;n++)finally_result1+=result[n];
+						finally_result1=finally_result1/result.length;
+//						System.out.println("第"+(i0+4+i1+4+i2+1+i3+1)+"次validation测试结果"+finally_result);
+						if(finally_result0>distance[0][0]) {
+							distance[0][0]=finally_result0;
+							distance[0][1]=finally_result1;
+							res[0][0]= i0;
+							res[0][1]= i1;
+							res[0][2]= i2;
+							res[0][3]= i3;
+						}
+						if(finally_result1>distance[1][1]) {
+							distance[1][0]=finally_result0;
+							distance[1][1]=finally_result1;
+							res[1][0]= i0;
+							res[1][1]= i1;
+							res[1][2]= i2;
+							res[1][3]= i3;
+						}
+//						System.out.println("----------------");
+					}
+				}
+			}
+		}
+		System.out.println("test最佳时的分布：");
+		System.out.println("test平均准确率："+distance[0][0]);
+		System.out.println("validation平均准确率："+distance[0][1]);
+		System.out.println(Arrays.toString(res[0]));
+		System.out.println("validation最佳时的分布：");
+		System.out.println("test平均准确率："+distance[1][0]);
+		System.out.println("validation平均准确率："+distance[1][1]);
+		System.out.println(Arrays.toString(res[1]));
+		System.out.println("-----------------");
+		
 	}
 	
 	private void train() {
-		double[][] parameters = new double[train_data_x.length][];
-//		double[] a = new double[4];
-//		Scanner input = new Scanner(System.in);
-//		for(int i=0;i<4;i++)a[i]=input.nextDouble();
-//		for(int i=0;i<parameters.length;i++)parameters[i] = a;
-		parameters = get_parameters();
-		ovo= new NBSVM_SMO[train_data_x.length];
-		for(int i=0;i<train_data_x.length;i++) {
-			if(parameters[i][4]==0)kernel="line";
-			else if(parameters[i][4]==1)kernel="rbf";
-			else if(parameters[i][4]==2)kernel="poly";
-			ovo[i] = new NBSVM_SMO(train_data_x[i],train_data_y[i],tol, parameters[i][0],parameters[i][1],parameters[i][2],parameters[i][3], kernel,parameters[i][5],(int)parameters[i][6]);}
-		System.out.println(Arrays.deepToString(parameters));	
+		get_parameters();	
 	}
 	
 	//最高票数相同的时候在所有最高票数的类中随机选取
-	public Integer predict(double[] unkonwn) {
+	public Integer predict(Another_SMO[] ovo,double[] unkonwn) {
 		int value[] = new int[validation_data_y.length];
 		Vector<Integer> index_list = new Vector<Integer>();
-		double percent;
-		Integer[] label;
 		Integer result;
 		int p=0;
 		for(int i=0;i<ovo.length;i++) {
-			percent = ovo[i].get_probability(unkonwn);
-			label=ovo[i].get_label();
-			if(percent>=0.5)result=label[1];
-			else result=label[0];
+			result = ovo[i].predict(unkonwn);
 			for(int j=0;j<validation_data_y.length;j++)if(result==validation_data_y[j])value[j]++;
 		}
 		for(int i=1;i<value.length;i++)if(value[i]>value[p])p=i;
