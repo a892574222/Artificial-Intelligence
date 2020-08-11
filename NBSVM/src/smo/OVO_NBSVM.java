@@ -156,16 +156,40 @@ public class OVO_NBSVM {
 //		for(int i=0;i<4;i++)a[i]=input.nextDouble();
 //		for(int i=0;i<parameters.length;i++)parameters[i] = a;
 		parameters = get_parameters();
+		System.out.println(Arrays.deepToString(parameters));
 		ovo= new NBSVM_SMO[train_data_x.length];
 		for(int i=0;i<train_data_x.length;i++) {
 			if(parameters[i][4]==0)kernel="line";
 			else if(parameters[i][4]==1)kernel="rbf";
 			else if(parameters[i][4]==2)kernel="poly";
 			ovo[i] = new NBSVM_SMO(train_data_x[i],train_data_y[i],tol, parameters[i][0],parameters[i][1],parameters[i][2],parameters[i][3], kernel,parameters[i][5],(int)parameters[i][6]);}
-		System.out.println(Arrays.deepToString(parameters));	
 	}
 	
 	//最高票数相同的时候在所有最高票数的类中随机选取
+	//预测需要改成加权的投票
+//	public Integer predict(double[] unkonwn) {
+//		double value[] = new double[validation_data_y.length];
+//		Vector<Integer> index_list = new Vector<Integer>();
+//		double percent;
+//		Integer[] label;
+//		int p=0;
+//		for(int i=0;i<ovo.length;i++) {
+//			percent = ovo[i].get_probability(unkonwn);
+//			label=ovo[i].get_label();
+//			for(int j=0;j<validation_data_y.length;j++) {
+//				if(label[0]==validation_data_y[j])value[j]+=1-percent;
+//				if(label[1]==validation_data_y[j])value[j]+=percent;
+//			}
+//		}
+//		for(int i=1;i<value.length;i++)if(value[i]>value[p])p=i;
+////		for(int i=0;i<value.length;i++)if(value[i]==value[p]&&validation_data_x[i].length<validation_data_x[p].length)p=i;
+////		for(int i=0;i<value.length;i++)if(value[i]==value[p]&&validation_data_x[i].length==validation_data_x[p].length)index_list.add(i);
+////		p=new Random().nextInt(index_list.size());
+////		p=index_list.get(p);
+//		return validation_data_y[p];
+//	}
+	
+	
 	public Integer predict(double[] unkonwn) {
 		int value[] = new int[validation_data_y.length];
 		Vector<Integer> index_list = new Vector<Integer>();

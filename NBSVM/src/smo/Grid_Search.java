@@ -21,6 +21,10 @@ public class Grid_Search {
 	private double[][][] x1;
 	private Integer[] y1;
 	private NBSVM_SMO[] ovo;
+	
+	private double[] finally_result = new double[14641];
+	private String[] finally_string = new String[14641];
+	
 	public Grid_Search(double[][]data_x,Integer[] data_y,double tol,double[][][]x1,Integer[]y1) {
 		this.tol = tol;
 		label_kinds=set_num(data_y);
@@ -133,6 +137,13 @@ public class Grid_Search {
 		}
 	}
 	
+	public double[] get_result() {
+		return finally_result;
+	}
+	
+	public String[] get_string() {
+		return finally_string;
+	}
 	
 	private void get_parameters() {
 		Another_SMO[] ovo= new Another_SMO[train_data_x.length];
@@ -144,7 +155,7 @@ public class Grid_Search {
 			for(int i1=-3;i1<8;i1++) {
 				for(double i2=0;i2<=1;i2+=0.1) {
 					for(double i3=0;i3<=1;i3+=0.1) {
-						index++;
+						
 						for(int i=0;i<train_data_x.length;i++) {
 							ovo[i] = new Another_SMO(train_data_x[i],train_data_y[i],tol, Math.pow(10, i0),Math.pow(10, i1),i2,i3, "rbf");
 							}
@@ -164,52 +175,57 @@ public class Grid_Search {
 						for(int n=0;n<result.length;n++)finally_result0+=result[n];
 						finally_result0=finally_result0/result.length;
 						//System.out.println("第"+(index)+"次test测试结果"+finally_result);
+						finally_result[index] = finally_result0;
+						finally_string[index] = i0+","+i1+","+i2+","+i3+":";
+						index++;
+						
+						
+//						result = new double[validation_data_x.length];
+//						for(int n=0;n<validation_data_x.length;n++) {
+//							double q = 0;
+//							for(int m=0;m<validation_data_x[n].length;m++)if(validation_data_y[n]==this.predict(ovo,validation_data_x[n][m]))q++;
+//							result[n] = q/validation_data_x[n].length;
+////							System.out.println("预测的类别:"+validation_data_y[n]);
+////							System.out.println("预测的类别的向量总数:"+validation_data_x[n].length);
+////							System.out.println("预测准确率"+result[n]);
+//						}
+//						double finally_result1 = 0;
+//						for(int n=0;n<result.length;n++)finally_result1+=result[n];
+//						finally_result1=finally_result1/result.length;
 						
 						
 						
-						result = new double[validation_data_x.length];
-						for(int n=0;n<validation_data_x.length;n++) {
-							double q = 0;
-							for(int m=0;m<validation_data_x[n].length;m++)if(validation_data_y[n]==this.predict(ovo,validation_data_x[n][m]))q++;
-							result[n] = q/validation_data_x[n].length;
-//							System.out.println("预测的类别:"+validation_data_y[n]);
-//							System.out.println("预测的类别的向量总数:"+validation_data_x[n].length);
-//							System.out.println("预测准确率"+result[n]);
-						}
-						double finally_result1 = 0;
-						for(int n=0;n<result.length;n++)finally_result1+=result[n];
-						finally_result1=finally_result1/result.length;
 //						System.out.println("第"+(i0+4+i1+4+i2+1+i3+1)+"次validation测试结果"+finally_result);
-						if(finally_result0>distance[0][0]) {
-							distance[0][0]=finally_result0;
-							distance[0][1]=finally_result1;
-							res[0][0]= i0;
-							res[0][1]= i1;
-							res[0][2]= i2;
-							res[0][3]= i3;
-						}
-						if(finally_result1>distance[1][1]) {
-							distance[1][0]=finally_result0;
-							distance[1][1]=finally_result1;
-							res[1][0]= i0;
-							res[1][1]= i1;
-							res[1][2]= i2;
-							res[1][3]= i3;
-						}
+//						if(finally_result0>distance[0][0]) {
+//							distance[0][0]=finally_result0;
+//							distance[0][1]=finally_result1;
+//							res[0][0]= i0;
+//							res[0][1]= i1;
+//							res[0][2]= i2;
+//							res[0][3]= i3;
+//						}
+//						if(finally_result1>distance[1][1]) {
+//							distance[1][0]=finally_result0;
+//							distance[1][1]=finally_result1;
+//							res[1][0]= i0;
+//							res[1][1]= i1;
+//							res[1][2]= i2;
+//							res[1][3]= i3;
+//						}
 //						System.out.println("----------------");
 					}
 				}
 			}
 		}
-		System.out.println("test最佳时的分布：");
-		System.out.println("test平均准确率："+distance[0][0]);
-		System.out.println("validation平均准确率："+distance[0][1]);
-		System.out.println(Arrays.toString(res[0]));
-		System.out.println("validation最佳时的分布：");
-		System.out.println("test平均准确率："+distance[1][0]);
-		System.out.println("validation平均准确率："+distance[1][1]);
-		System.out.println(Arrays.toString(res[1]));
-		System.out.println("-----------------");
+//		System.out.println("test最佳时的分布：");
+//		System.out.println("test平均准确率："+distance[0][0]);
+//		System.out.println("validation平均准确率："+distance[0][1]);
+//		System.out.println(Arrays.toString(res[0]));
+//		System.out.println("training最佳时的分布：");
+//		System.out.println("test平均准确率："+distance[1][0]);
+//		System.out.println("training平均准确率："+distance[1][1]);
+//		System.out.println(Arrays.toString(res[1]));
+//		System.out.println("-----------------");
 		
 	}
 	

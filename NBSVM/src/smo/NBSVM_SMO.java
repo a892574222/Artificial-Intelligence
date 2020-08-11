@@ -99,15 +99,6 @@ public class NBSVM_SMO {
 			if(label[i]==1) {positive_number++;upMask[i]=1;}
 			else downMask[i]=1;
 		}
-		if(positive_number>data.length/2) {
-			double w;
-			w=w1;
-			w1=w2;
-			w2=w;
-			w=C1;
-			C1=C2;
-			C2=w;
-		}
 		boxconstraint[0] = C1;
 		boxconstraint[1] = C2;
 		for(int i=0;i<label.length;i++) {
@@ -136,6 +127,7 @@ public class NBSVM_SMO {
 					else if(label[i]*Gi[i]>val1) {idx1=i;val1=label[i]*Gi[i];}
 				}
 			}
+			if(idx1==-1)break;
 			alpha2=getMaxGain(idx1);
 			if(alpha2.idx==-1) {
 				for(int i=0;i<downMask.length;i++) {
@@ -479,38 +471,32 @@ public class NBSVM_SMO {
 		for(int i=0;i<x1.length;i++)result += x1[i]*x1[i];
 		return result;
 	}
-	
 	//获得支持向量的个数
 	public int getNumber() {
 		int sum=0;
 		double result;
+		double[] temp = new double[data.length];
+		int kktViolationCount;
+		int[] flags;
 		for(int i=0;i<data.length;i++) {
-			result=b;
-			for(int j=0;j<data.length;j++) {
-				result +=alphas[j]*label[j]*kernel(data[i],data[j],kernel);
-			}
-			result=label[i]*result;
-			if(label[i]==1)if(result<=w1)sum++;
-			if(label[i]==-1)if(result<=w2)sum++;
+			result=label[i]*b-Gi[i];
+			temp[i]=result;
+			if(result<=tolKKT)sum++;
 		}
-		return sum;
-	}
-	
-	//计算真实的结果
-	public double getDistance(double[] unkonwn,Integer un_label){
-		double sum=0;
-		double result=b;
-		Integer changed_label;
-		if(un_label==negative)changed_label=-1;
-		else if(un_label==positive)changed_label=1;
-		else return -2;
-		for(int i=0;i<data.length;i++) {
-			result +=alphas[i]*label[i]*kernel(unkonwn,data[i],kernel);
-		}
-			result=un_label*result;
-			if(changed_label==1)if(result<=w1)sum=(w1-result);
-			if(changed_label==-1)if(result<=w2)sum=(w2-result);
-		
+//		if(sum==0) {
+//			flags=checkKKT();
+//			kktViolationCount=0;
+//			for(int i=0;i<flags.length;i++)if(flags[i]==0)kktViolationCount +=1;
+//			System.out.println(sum);
+//			System.out.println(kktViolationCount);
+//			System.out.println(svTol);
+//			System.out.println(Arrays.toString(flags));
+//			System.out.println(Arrays.toString(alphas));
+//			System.out.println(Arrays.toString(temp));
+//			System.out.println(Arrays.toString(upMask));
+//			System.out.println("-------------");
+//			}
+		if(sum==0)sum=data.length;
 		return sum;
 	}
 	
